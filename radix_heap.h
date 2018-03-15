@@ -292,8 +292,8 @@ class pair_radix_heap {
 
   key_type min_key() const {
     assert(size_ > 0);
-
-    const size_t i = buckets_[0].empty() * bucket_flags_.find_first_non_empty();
+    const size_t i = buckets_[0].empty() ? bucket_flags_.find_first_non_empty() : 0;
+    assert(last_ <= buckets_min_[i]);
     return encoder_type::decode(buckets_min_[i]);
   }
 
@@ -316,6 +316,21 @@ class pair_radix_heap {
     pull();
     buckets_[0].pop_back();
     --size_;
+  }
+
+  void pop_top_values() {
+      pull();
+      size_ -= buckets_[0].size();
+      buckets_[0].clear();
+  }
+
+
+  std::vector<std::pair<unsigned_key_type, value_type> > extract_top_values() {
+    pull();
+    std::vector<std::pair<unsigned_key_type, value_type> > vec;
+    size_ -= buckets_[0].size();
+    buckets_[0].swap(vec);
+    return vec;
   }
 
   size_t size() const {
@@ -355,6 +370,7 @@ class pair_radix_heap {
   void pull() {
     assert(size_ > 0);
     if (!buckets_[0].empty()) return;
+    buckets_min_[0] = std::numeric_limits<unsigned_key_type>::max();
 
     const size_t i = bucket_flags_.find_first_non_empty();
     last_ = buckets_min_[i];
